@@ -13,18 +13,20 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AllowlistGenerator {
 
     private static final Gson gson = new Gson();
     private static final StringBuilder xuidResponse = new StringBuilder();
+    private static final  String name = "allowlist.json";
 
     public static void main(String[] args) throws IOException {
-        List<PlayerData> playerDataList = loadPlayerDataFromFile("allowlist.json");
+        final List<PlayerData> playerDataList = loadPlayerDataFromFile();
+        final List<PlayerData> newPlayers = new ArrayList<>();
 
 
-        List<PlayerData> newPlayers = new ArrayList<>();
         newPlayers.add(new PlayerData(true, "JndjanBartonka"));
         newPlayers.add(new PlayerData(false, "t9m3k"));
         newPlayers.add(new PlayerData(false, "KENTREXXX1099"));
@@ -38,7 +40,7 @@ public class AllowlistGenerator {
         newPlayers.add(new PlayerData(false, "PIOTErom"));
         newPlayers.add(new PlayerData(false, "Kasiexx69"));
 
-        for (PlayerData newPlayer : newPlayers) {
+        for (final PlayerData newPlayer : newPlayers) {
             if (!isPlayerInList(playerDataList, newPlayer.getName())) {
                 System.out.println("Dodano: " + newPlayer.getName());
                 playerDataList.add(newPlayer);
@@ -48,15 +50,17 @@ public class AllowlistGenerator {
         }
 
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-        String json = gson.toJson(newPlayers);
+        final String json = gson.toJson(newPlayers);
 
-        savePlayerDataToFile(json, "allowlist.json");
+        System.out.println(json);
+
+        savePlayerDataToFile(json);
     }
 
-    private static boolean isPlayerInList(final List<PlayerData> playerDataList,final  String playerName) {
-        for (PlayerData playerData : playerDataList) {
+    private static boolean isPlayerInList(final List<PlayerData> playerDataList, final String playerName) {
+        for (final PlayerData playerData : playerDataList) {
             if (playerData.getName().equals(playerName)) {
                 return true;
             }
@@ -64,23 +68,22 @@ public class AllowlistGenerator {
         return false;
     }
 
-    private static List<PlayerData> loadPlayerDataFromFile(final String fileName) throws IOException {
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(fileName))) {
-            PlayerData[] playerDataArray = gson.fromJson(bufferedReader, PlayerData[].class);
-            List<PlayerData> playerDataList = new ArrayList<>();
+    private static List<PlayerData> loadPlayerDataFromFile() throws IOException {
+        //Nie znam sie na bibliotece gson , chat gtp mi pomagal z nią :D
+        try (final BufferedReader bufferedReader = new BufferedReader(new FileReader(name))) {
+            final PlayerData[] playerDataArray = gson.fromJson(bufferedReader, PlayerData[].class);
+            final List<PlayerData> playerDataList = new ArrayList<>();
             if (playerDataArray != null) {
-                for (PlayerData playerData : playerDataArray) {
-                    playerDataList.add(playerData);
-                }
+                playerDataList.addAll(Arrays.asList(playerDataArray));
             }
             return playerDataList;
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             return new ArrayList<>();
         }
     }
 
-    private static void savePlayerDataToFile(final String json,final  String fileName) {
-        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName))) {
+    private static void savePlayerDataToFile(final String json) {
+        try (final BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(name))) {
             bufferedWriter.write(json);
         } catch (IOException e) {
             e.printStackTrace();
@@ -90,7 +93,7 @@ public class AllowlistGenerator {
     public static long getXuid(final String name) {
         try {
             xuidResponse.setLength(0);
-            final URL url = new URL(("https://api.geysermc.org/v2/xbox/xuid/" + name).replaceAll(" " , "%20"));
+            final URL url = new URL(("https://api.geysermc.org/v2/xbox/xuid/" + name).replaceAll(" ", "%20"));
             final HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("GET");
             con.setRequestProperty("Accept", "application/json");
@@ -125,9 +128,9 @@ public class AllowlistGenerator {
 
 
     static class PlayerData {
-        private boolean ignoresPlayerLimit;
-        private String name;
-        private long xuid;
+        private final boolean ignoresPlayerLimit;
+        private final String name;
+        private final long xuid;
 
         public PlayerData(boolean ignoresPlayerLimit, String name) {
             this.ignoresPlayerLimit = ignoresPlayerLimit;
@@ -135,9 +138,16 @@ public class AllowlistGenerator {
             this.xuid = AllowlistGenerator.getXuid(name);
         }
 
-        public String getName() {
-            return name;
+        public boolean isIgnoresPlayerLimit() {
+            return this.ignoresPlayerLimit;
         }
 
+        public String getName() {
+            return this.name;
+        }
+
+        public long getXuid() {
+            return this.xuid;
+        }
     }
 }
